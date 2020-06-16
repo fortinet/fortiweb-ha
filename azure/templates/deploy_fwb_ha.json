@@ -1,0 +1,736 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "subscriptionId": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Subscription ID."
+            }
+        },
+        "tenantId": {
+            "type": "string",
+            "metadata": {
+                "description": "Directory ID on the Active Directory of your current subscription."
+            }
+        },
+        "restappId": {
+            "type": "string",
+            "metadata": {
+                "description": "ID of the registered application."
+            }
+        },
+        "restappSecret": {
+            "type": "string",
+            "metadata": {
+                "description": "Key added to the registered application."
+            }
+        },
+        "resourceNamePrefix": {
+            "defaultValue": "fwbha",
+            "minLength": 3,
+            "maxLength": 48,
+            "type": "string",
+            "metadata": {
+                "description": "Name prefix for resources which the Fortiweb HA template create."
+            }
+        },
+        "vmSku": {
+            "type": "string",
+            "defaultValue":"Standard_F2s_v2",
+            "allowedValues":[
+                "Standard_F2s_v2",
+                "Standard_F4s_v2",
+                "Standard_F8s_v2"
+            ],
+            "metadata": {
+                "description": "Size of VM in the FortiWeb set VM instances"
+            }
+        },
+        "vmAdminUsername": {
+            "minLength": 3,
+            "maxLength": 48,
+            "type": "string",
+            "metadata": {
+                "description": "Admin username for all FortiWeb VM instances in the template. Must not be 'admin' nor 'root' and must be 3-48 characters in length."
+            }
+        },
+        "vmAuthenticationType": {
+            "type": "string",
+            "defaultValue": "password",
+            "allowedValues": [
+                "password",
+                "sshPublicKey"
+            ],
+            "metadata": {
+                "description": "Choose a password or ssh public key for the Admin username used to access virtual machines"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "securestring",
+            "defaultValue":"",
+            "metadata": {
+                "description": "Password must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following:  1) Contains an uppercase character; 2) Contains a lowercase character;  3) Contains a numeric digit;  4) Contains a special character;  5) Control characters are not allowed."
+            }
+        },
+        "vmSshPublicKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Admin ssh public key, the key needs to be at least 2048-bit and in ssh-rsa format."
+            }
+        },
+        "vmImageType":{
+            "defaultValue":"BYOL",
+            "type":"String",
+            "metadata":{
+                "description":"FortiWeb image type."
+            },
+            "allowedValues":[
+                "BYOL",
+                "OnDemand"
+            ]
+        },
+        "vmImageVersion":{
+            "defaultValue":"latest",
+            "type":"String",
+            "metadata":{
+                "description":"FortiWeb image Version."
+            },
+            "allowedValues":[
+                "latest"
+            ]
+        },
+        "vmCount":{
+            "type":"int",
+            "defaultValue": 2,
+            "minValue": 1,
+            "maxValue": 8,
+            "metadata":{
+                "description":"Number of Fortiweb instances in the HA cluster. Minimum is 1, Maximum is 8."
+            }
+        },
+        "vnetNewOrExisting": {
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "type": "string",
+            "metadata": {
+                "description": "Identify whether to use a new or existing vnet."
+            }
+        },
+        "vnetResourceGroup": {
+            "defaultValue": "[resourceGroup().name]",
+            "type": "string",
+            "metadata": {
+                "description": "Name of the existing virtual network, if the field vnetNewOrExisting value is existing, this field is required."
+            }
+        },
+        "vnetName": {
+            "defaultValue": "fwbhavnet",
+            "minLength": 3,
+            "maxLength": 48,
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Azure virtual network, if the field vnetNewOrExisting value is new, the virtual network with the appointed name will be created. Must be 3-48 characters in length."
+            }
+        },
+        "vnetAddressPrefix": {
+            "defaultValue": "10.0.0.0/16",
+            "type": "string",
+            "metadata": {
+                "description": "Virtual Network Address prefix, if the field vnetNewOrExisting value is new, this field is required."
+            }
+        },
+        "vnetSubnet1Name": {
+            "defaultValue": "FwbHAOutsideSubnet",
+            "minLength": 3,
+            "maxLength": 48,
+            "type": "string",
+            "metadata": {
+                "description": "Name of Subnet1 in the virtual network, if the field vnetNewOrExisting value is new, the subnet with the appointed name will be created. Must be 3-48 characters in length."
+            }
+        },
+        "vnetSubnet1Prefix": {
+            "defaultValue": "10.0.1.0/24",
+            "type": "string",
+            "metadata": {
+               "description": "Prefix of Subnet1 in the virtual network, if the field vnetNewOrExisting value is new, this field is required."
+            }
+        },
+        "vnetSubnet2Name": {
+            "defaultValue": "FwbHAInsideSubnet",
+            "minLength": 3,
+            "maxLength": 48,
+            "type": "string",
+            "metadata": {
+                "description": "Name of Subnet2 in the virtual network, if the field vnetNewOrExisting value is new, the subnet with the appointed name will be created. Must be 3-48 characters in length."
+            }
+        },
+        "vnetSubnet2Prefix": {
+            "defaultValue": "10.0.2.0/24",
+            "type": "string",
+            "metadata": {
+                 "description": "Prefix of Subnet2 in the virtual network, if the field vnetNewOrExisting value is new, this field is required."
+            }
+        },
+        "loadBalancerType": {
+            "defaultValue": "Internal",
+            "type": "string",
+            "allowedValues": [
+                "Internal",
+                "Public"
+            ],
+            "metadata": {
+                "description": "You can use internal load balancers to balance traffic from private IP addresses. Public load balancers can balance traffic originating from public IP addresses."
+            }
+        },
+        "fortiwebHaMode":{
+            "type": "string",
+            "allowedValues":[
+                "active-active-high-volume",
+                "active-active-standard",
+                "active-passive"
+            ],
+            "metadata":{
+                "description":"FortiWeb HA work mode."
+            }
+        },
+        "fortiwebHaGroupName":{
+            "type":"string",
+            "maxLength":19,
+            "minLength":2,
+            "metadata":{
+                "description":"FortiWeb HA group name. Must be 2-19 characters in length"
+            }
+        },
+        "fortiwebHaGroupId":{
+            "type":"int",
+            "minValue":0,
+            "maxValue":63,
+            "metadata":{
+                "description":"Type a group id that identifies of HA cluster. Mininum is 0, Maximum is 63."
+            }
+        },
+        "fortiwebHaOverride":{
+            "type":"string",
+            "defaultValue":"disable",
+            "allowedValues":[
+                "enable",
+                "disable"
+            ],
+            "metadata":{
+                "description":"HA Override"
+            }
+        },
+        "storageAccountName":{
+            "type": "string",
+            "defaultValue":"",
+            "metadata": {
+                "description": "Name of the storage account.Only BYOL need"
+            }
+        },
+        "storageAccessKey":{
+            "type":"string",
+            "defaultValue":"",
+            "metadata":{
+                "description":"The access key of the storage account.Only BYOL need."
+            }
+        },
+        "storageLicenseContainerName":{
+            "type":"string",
+            "defaultValue":"",
+            "metadata": {
+                "description": "Name of the storage container.Only BYOL need"
+            }
+        }
+    },
+
+    "variables":{
+        "networkApiVersion":"2019-04-01",
+        "virtualNetworkName":"[parameters('vnetName')]",
+        "subnet1ID": "[resourceId(parameters('vnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('VnetSubnet1Name'))]",
+        "subnet2ID": "[resourceId(parameters('vnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('VnetSubnet2Name'))]",
+        "vmNamePrefix":"[concat(parameters('resourceNamePrefix'), '-vm')]",
+        "NicPrivateIPNamePrefix":"[concat(parameters('resourceNamePrefix'), '-internal','-nic')]",
+        "NicPublicIPNamePrefix":"[concat(parameters('resourceNamePrefix'), '-external','-nic')]",
+        "PublicIPNamePrefix":"[concat(parameters('resourceNamePrefix'), '-nicPublic','-IP')]",
+        "LBName":"[concat(parameters('resourceNamePrefix'), '-loadbalance')]",
+        "LBPublicIPName":"[concat(parameters('resourceNamePrefix'), '-loadbalance','-IP')]",
+        "netSecGroupname":"[concat(parameters('resourceNamePrefix'), '-securityGroup')]",
+        "LBBackAddressPool":"FwbHaLBBackendAddrPool",
+        "LBResourceId": "[resourceId('Microsoft.Network/loadBalancers', variables('LBName'))]",
+        "adminPasswordBySSHKey": "[concat('Fwb123#', uniqueString(parameters('vmSshPublicKey')))]",
+        "haAvailabilitySet":"[concat(parameters('resourceNamePrefix'), '-availabilitySet')]",
+        "location":"[resourceGroup().location]",
+        "LBFrontIPConfProMap": {
+            "Internal": {
+                "privateIPAllocationMethod": "Dynamic",
+                "subnet": {
+                    "id": "[variables('subnet1ID')]"
+                },
+                "privateIPAddressVersion": "IPv4"
+            },
+            "Public": {
+                "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('LBPublicIPName'))]"
+                    }
+                }
+        },
+        "linuxConfigSSH": {
+            "publicKeys": [
+                {
+                    "keyData": "[parameters('vmSshPublicKey')]",
+                    "path": "[concat('/home/', parameters('vmAdminUsername'), '/.ssh/authorized_keys')]"
+                }
+            ]
+        },
+        "customDataInitArray":{
+            "copy":[
+                {
+                    "name":"customDataInit",
+                    "count":"[parameters('vmCount')]",
+                    "input":{
+                        "HaAzureInit":"enable",
+                        "HaResourceGroupName":"[resourceGroup().name]",
+                        "HaSubscriptionId":"[parameters('subscriptionId')]",
+                        "HaTenantId":"[parameters('tenantId')]",
+                        "HaApplicationId":"[parameters('restappId')]",
+                        "HaApplicationPassword":"[parameters('restappSecret')]",
+                        "HaLoadblancerName":"[variables('LBName')]",
+                        "HaInstanceCount":"[parameters('vmCount')]",
+                        "HaInstanceId":"[copyIndex('customDataInit', 1)]",
+                        "HaNamePrefix":"[parameters('resourceNamePrefix')]",
+                        "HaInstanceName":"[concat(variables('vmNamePrefix'), copyIndex('customDataInit', 1))]",
+                        "HaStorageAccount":"[parameters('storageAccountName')]",
+                        "HaStorageAccessKey":"[parameters('storageAccessKey')]",
+                        "HaContainer":"[parameters('storageLicenseContainerName')]",
+                        "HaMode":"[parameters('fortiwebHaMode')]",
+                        "HaGroupId":"[parameters('fortiwebHaGroupId')]",
+                        "HaGroupName":"[parameters('fortiwebHaGroupName')]",
+                        "HaOverride":"[parameters('fortiwebHaOverride')]"
+                    }
+                }
+            ]
+        },
+
+        "vmImageSkuMap":{
+            "BYOL":"fortinet_fw-vm",
+            "OnDemand":"fortinet_fw-vm_payg"
+        },
+        "vmImagePlan":{
+            "name": "[variables('vmImageSkuMap')[parameters('vmImageType')]]",
+            "product": "fortinet_fortiweb-vm_v5",
+            "publisher": "fortinet"
+        },
+        "imageReference": {
+            "publisher": "fortinet",
+            "offer": "fortinet_fortiweb-vm_v5",
+            "sku": "[variables('vmImageSkuMap')[parameters('vmImageType')]]",
+            "version": "[parameters('vmImageVersion')]"
+        }
+    },
+    "functions":[
+        {
+            "namespace":"FwbHaFunction",
+            "members":{
+                "customDatatoString":{
+                    "parameters":[
+                        {
+                            "name":"customDataInit",
+                            "type":"object"
+                        }
+                    ],
+                    "output":{
+                        "type":"string",
+                        "value":"[base64(string(parameters('customDataInit')))]"
+                    }
+                }
+
+            }
+        }
+    ],
+    "resources":[
+        {
+            "apiVersion":"2018-06-01",
+            "name":"[variables('haAvailabilitySet')]",
+            "type":"Microsoft.Compute/availabilitySets",
+            "sku":{
+                "name":"Aligned"
+            },
+            "location":"[variables('location')]",
+            "properties":{
+                "platformUpdateDomainCount":2,
+                "platformFaultDomainCount":2
+            },
+            "dependsOn":[]
+        },
+        {
+            "apiVersion":"[variables('networkApiVersion')]",
+            "type":"Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location":"[variables('location')]",
+            "properties":{
+                "addressSpace":{
+                    "addressPrefixes":[
+                        "[parameters('vnetAddressPrefix')]"
+                    ]
+                },
+                "subnets":[
+                    {
+                        "name":"[parameters('vnetSubnet1Name')]",
+                        "properties":{
+                            "addressPrefix":"[parameters('vnetSubnet1Prefix')]"
+                        }
+                    },
+                    {
+                        "name":"[parameters('vnetSubnet2Name')]",
+                        "properties":{
+                             "addressPrefix":"[parameters('vnetSubnet2Prefix')]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('netSecGroupname'))]"
+            ],
+            "condition": "[equals(parameters('vnetNewOrExisting'), 'new')]"
+        },
+        {
+            "apiVersion":"[variables('networkApiVersion')]",
+            "type":"Microsoft.Network/networkInterfaces",
+            "name":"[concat(variables('NicPublicIPNamePrefix'), copyIndex(1))]",
+            "location":"[variables('location')]",
+            "properties":{
+                "networkSecurityGroup":{
+                    "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('netSecGroupname'))]"
+                 },
+                "ipConfigurations":[
+                    {
+                        "name":"ipconfig1",
+                        "properties":{
+                            "primary": true,
+                            "privateIPAllocationMethod": "Dynamic",
+                            "privateIPAddressVersion": "IPv4",
+
+                            "subnet":{
+                                "id": "[variables('subnet1ID')]"
+                            },
+                            "publicIPAddress":{
+                                "id":"[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('PublicIPNamePrefix'), copyIndex(1)))]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(variables('LBResourceId'), '/backendAddressPools/', variables('LBBackAddressPool'))]"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+             "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('LBName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('netSecGroupname'))]"
+            ],
+            "copy":{
+                "name":"nicloop",
+                "count":"[parameters('vmCount')]"
+            }
+        },
+        {
+            "apiVersion":"[variables('networkApiVersion')]",
+            "type":"Microsoft.Network/networkInterfaces",
+            "name":"[concat(variables('NicPrivateIPNamePrefix'), copyIndex(1))]",
+            "location":"[variables('location')]",
+            "properties":{
+                "ipConfigurations":[
+                    {
+                        "name":"ipconfig1",
+                        "properties":{
+                            "privateIPAllocationMethod": "Dynamic",
+                            "privateIPAddressVersion": "IPv4",
+                            "subnet":{
+                                 "id": "[variables('subnet2ID')]"
+                            }
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking":false,
+                "enableIPForwarding": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('LBName'))]"
+            ],
+            "copy":{
+                "name":"nicloop",
+                "count":"[parameters('vmCount')]"
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('LBPublicIPName')]",
+            "location": "[variables('location')]",
+            "condition": "[equals(parameters('loadBalancerType'), 'Public')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(variables('PublicIPNamePrefix'), copyIndex(1))]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            },
+            "copy":{
+                "name":"PublicIPCopy",
+                "count":"[parameters('vmCount')]"
+            }
+        },
+        {
+            "apiVersion":"[variables('networkApiVersion')]",
+            "type":"Microsoft.Network/loadBalancers",
+            "name":"[variables('LBName')]",
+            "location":"[variables('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties":{
+                "frontendIPConfigurations":[
+                    {
+                        "name":"LBHaFrontEnd",
+                        "properties": "[variables('LBFrontIPConfProMap')[parameters('loadBalancerType')]]"
+                    }
+                ],
+                "backendAddressPools":[{
+                    "name":"[variables('LBBackAddressPool')]"
+                }],
+                "probes":[
+                    {
+                        "name":"tcpProbe",
+                        "properties":{
+                            "protocol":"Tcp",
+                            "port":80,
+                            "intervalInSeconds":5,
+                            "numberOfProbes":2
+                        }
+                    },
+                    {
+                        "name": "tcpProbe1",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 443,
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ],
+                "loadBalancingRules":[
+                    {
+                        "name":"LBRule",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('LBResourceId'), '/frontendIPConfigurations/LBHaFrontEnd')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[concat(variables('LBResourceId'),'/backendAddressPools/', variables('LBBackAddressPool'))]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": true,
+                            "idleTimeoutInMinutes": 4,
+                            "probe": {
+                                "id": "[concat(variables('LBResourceId'),'/probes/tcpProbe')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "LBRule1",
+                        "properties": {
+                        "frontendIPConfiguration": {
+                            "id": "[concat(variables('LBResourceId'), '/frontendIPConfigurations/LBHaFrontEnd')]"
+                        },
+                        "backendAddressPool": {
+                            "id": "[concat(variables('LBResourceId'),'/backendAddressPools/', variables('LBBackAddressPool'))]"
+                        },
+                        "protocol": "Tcp",
+                        "frontendPort": 443,
+                        "backendPort": 443,
+                        "enableFloatingIP": true,
+                        "idleTimeoutInMinutes": 4,
+                        "probe": {
+                            "id": "[concat(variables('LBResourceId'),'/probes/tcpProbe1')]"
+                        }
+                    }
+                }]
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIpAddresses/', variables('LBPublicIPName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetName'))]"
+            ]
+        },
+        {
+            "apiVersion":"[variables('networkApiVersion')]",
+            "type":"Microsoft.Network/networkSecurityGroups",
+            "name":"[variables('netSecGroupname')]",
+            "location":"[variables('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "allowSSH",
+                        "properties": {
+                        "description": "Allow SSH traffic",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allowHTTP",
+                        "properties": {
+                            "description": "Allow http business flow",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1010,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allowHTTPs",
+                        "properties": {
+                            "description": "Allow https business flow",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1020,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allowManageHTTP",
+                        "properties": {
+                            "description": "Allow http web management flow",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "8080",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1030,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allowManageHTTPs",
+                        "properties": {
+                            "description": "Allow https web management flow",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "8443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1040,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('vmNamePrefix'),copyIndex(1))]",
+            "apiVersion": "2018-06-01",
+            "location": "[variables('location')]",
+            "plan": "[variables('vmImagePlan')]",
+            "tags":{
+                "[variables('vmNamePrefix')]" : "[parameters('resourceNamePrefix')]"
+            },
+            "copy":{
+                 "name":"InstanceCopy",
+                 "count":"[parameters('vmCount')]"
+            },
+
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('haAvailabilitySet'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSku')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imageReference')]",
+                    "osDisk": {
+                        "osType": "Linux",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "diskSizeGB": 30,
+                            "lun": 0,
+                            "createOption": "Empty"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('vmNamePrefix'), copyindex(1))]",
+                    "adminUsername": "[parameters('vmAdminUserName')]",
+                    "adminPassword": "[if(equals(parameters('vmAuthenticationType'), 'password'), parameters('vmAdminPassword'), variables('adminPasswordBySSHKey'))]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "ssh": "[if(equals(parameters('vmAuthenticationType'), 'sshPublicKey'), variables('linuxConfigSSH'), json('null'))]"
+                    },
+                    "customData":"[FwbHaFunction.customDatatoString(array(variables('customDataInitArray')['customDataInit'])[copyIndex()])]",
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('NicPublicIPNamePrefix'), copyIndex(1)))]",
+                            "properties": {
+                                "primary": true
+                            }
+                        },
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('NicPrivateIPNamePrefix'), copyIndex(1)))]",
+                            "properties": {
+                                "primary": false
+                            }
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('haAvailabilitySet'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('NicPublicIPNamePrefix'), copyIndex(1)))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('NicPrivateIPNamePrefix'), copyIndex(1)))]"
+            ]
+        }
+    ]
+}

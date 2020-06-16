@@ -1,0 +1,301 @@
+{
+    "Description": "Create a variable number of EC2 instance resources.",
+    "Parameters": {
+        "CustomIdentifier": {
+            "Type": "String"
+        },
+        "FortiWebLatestAmiId":{
+            "Type": "String"
+        },
+        "FortiWebInstanceType": {
+            "Type": "String"
+        },
+        "FortiWebImageType":{
+            "Type": "String"
+        },
+        "FortiWebInstancesCount":{
+             "Type": "Number"
+        },
+        "FortiWebHAGroupName": {
+            "Type": "String"
+        },
+        "FortiWebHAGroupID": {
+            "Type": "Number"
+        },
+        "FortiWebHAOverride":{
+            "Type": "String"
+        },
+        "FortiWebHAMode":{
+             "Type": "String"
+        },
+        "FortiWebAdminPassword": {
+            "Type": "String",
+            "NoEcho": true
+        },
+        "HAS3BucketName":{
+            "Type": "String"
+        },
+        "HAS3KeyPrefix":{
+            "Type": "String"
+        },
+        "FortiWebHACfName":{
+            "Type": "String"
+        },
+        "FwbHASecurityGroup" : {
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "PublicSubnet1":{
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "PublicSubnet2":{
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "KeyPairName":{
+            "Type": "AWS::EC2::KeyPair::KeyName"
+        },
+        "FwbEIPIP":{
+            "Type":"String"
+        },
+        "FwbEIPId":{
+            "Type":"String"
+        },
+        "ELBHTTPSTargetGroup":{
+            "Type":"String"
+        },
+        "ELBHTTPTargetGroup":{
+            "Type":"String"
+        }
+    },
+
+    "Resources": {
+        "EC2Instances": {
+            "Type": "Custom::EC2Instances",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "EC2InstancesFunction",
+                        "Arn"
+                    ]
+                },
+                "ImageId": {
+                    "Ref":"FortiWebLatestAmiId"
+                },
+                "FortiWebImageType":{
+                    "Ref":"FortiWebImageType"
+                },
+                "InstanceType": {
+                    "Ref": "FortiWebInstanceType"
+                },
+                "FortiWebInstancesCount": {
+                    "Ref": "FortiWebInstancesCount"
+                },
+                "FortiWebHAMode":{
+                    "Ref":"FortiWebHAMode"
+                },
+                "FortiWebHAGroupName":{
+                    "Ref":"FortiWebHAGroupName"
+                },
+                "FortiWebHAGroupID":{
+                    "Ref":"FortiWebHAGroupID"
+                },
+                "FortiWebHAOverride":{
+                    "Ref":"FortiWebHAOverride"
+                },
+                "FortiWebHACfName":{
+                    "Ref":"FortiWebHACfName"
+                },
+                "KeyName":{
+                    "Ref": "KeyPairName"
+                },
+                "FwbHASecurityGroup": {
+                    "Ref":"FwbHASecurityGroup"
+                },
+                "FortiWebAdminPassword":{
+                    "Fn::Base64" : {
+                        "Ref":"FortiWebAdminPassword"
+                    }
+                },
+                "HAS3BucketName":{
+                    "Ref":"HAS3BucketName"
+                },
+                "HAS3KeyPrefix":{
+                    "Ref":"HAS3KeyPrefix"
+                },
+                "CustomIdentifier":{
+                    "Ref":"CustomIdentifier"
+                },
+                "PublicSubnet": [
+                    {"Ref": "PublicSubnet1"},
+
+                    {"Ref": "PublicSubnet2"}
+                ],
+                "IamFwbInstanceRoleArn":{
+                    "Fn::GetAtt": [
+                        "IamInstanceProfileFwb",
+                        "Arn"
+                    ]
+                },
+                "IamInstanceProfileFwb":{
+                    "Ref":"IamInstanceProfileFwb"
+                },
+                "FwbEIPIP":{
+                    "Ref":"FwbEIPIP"
+                },
+                "FwbEIPId":{
+                    "Ref":"FwbEIPId"
+                },
+                "TargetGroupsHttp": {
+                     "Ref": "ELBHTTPSTargetGroup"
+                },
+                "TargetGroupsHttps": {
+                     "Ref": "ELBHTTPTargetGroup"
+                }
+            }
+        },
+        "EC2InstancesFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "create_instances.handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "IamInstanceRoleFwb",
+                        "Arn"
+                    ]
+                },
+
+                "Code": {
+                    "S3Bucket": {
+                        "Ref": "HAS3BucketName"
+                    },
+                    "S3Key": {
+                        "Fn::Sub": [
+                            "${HAS3KeyPrefix}function/lambda.zip",
+                            {
+                                "HAS3KeyPrefix": {
+                                    "Ref": "HAS3KeyPrefix"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "Runtime": "python2.7",
+                "Timeout": 300
+            }
+        },
+        "IamInstanceRoleFwb": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com",
+                                    "Fn::Sub":[
+                                        "ec2.${URLSuffix}",
+                                        "URLSuffix":{ "Ref":"AWS::URLSuffix"}
+                                    ]
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "ManagedPolicyArns": [
+                    "Fn::Sub":[
+                        "arn:${Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+                        "Partition":{ "Ref":"AWS::Partition"}
+                    ],
+                    "Fn::Sub":[
+                        "arn:${Partition}:iam::aws:policy/AmazonEC2FullAccess",
+                        "Partition":{ "Ref":"AWS::Partition"}
+                    ],
+                    "Fn::Sub":[
+                        "arn:${Partition}:iam::aws:policy/AmazonS3ReadOnlyAccess",
+                        "Partition":{ "Ref":"AWS::Partition"}
+                    ]
+                ],
+                "Policies": [
+                    {
+                        "PolicyName": "EC2Policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:*"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                },
+                                {
+                                     "Effect": "Allow",
+                                     "Action": [
+                                        "iam:PassRole",
+                                        "iam:GetRole"
+                                     ],
+                                     "Resource": "*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:GetObject"
+                                    ],
+                                    "Resource": {
+                                        "Fn::Sub": [
+                                            "arn:${Partition}:s3:::${HAS3BucketName}/${HAS3KeyPrefix}*",
+                                            {
+                                                "Partition":{
+                                                    "Ref":"AWS::Partition"
+                                                },
+                                                "HAS3BucketName": {
+                                                    "Ref": "HAS3BucketName"
+                                                },
+                                                "HAS3KeyPrefix": {
+                                                    "Ref": "HAS3KeyPrefix"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "IamInstanceProfileFwb": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Roles": [
+                    {
+                        "Ref": "IamInstanceRoleFwb"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "InstancesId": {
+            "Description": "Instances list",
+            "Value": {
+                "Fn::Join": [
+                    ",",
+                    {
+                        "Fn::GetAtt": [
+                            "EC2Instances",
+                            "InstancesId"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

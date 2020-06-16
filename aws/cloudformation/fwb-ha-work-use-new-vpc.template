@@ -1,0 +1,1074 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "FortiWeb HA Auto Deploy Solution (New VPC). This template deploys a Fortinet FortiWeb HA cluster into a new VPC. For more details, please see the HA Auto Deploy documentation. **WARNING** You will be billed for the FortiWeb HA instances and related AWS resources if you create a stack from this template.",
+    "Parameters": {
+        "CustomIdentifier": {
+            "Type": "String",
+            "Default": "fwbha",
+            "MaxLength": "10",
+            "AllowedPattern": "[A-Za-z0-9]+",
+            "ConstraintDescription": "must only contain uppercase and lowercase letters and numbers. Max length is 10.",
+            "Description": "A name prefix to be used on a resource names. Can only contain numbers, lowercase letters, and uppercase letters. Max length is 10."
+        },
+        "HAS3BucketName": {
+            "Type": "String",
+            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
+            "ConstraintDescription": "HA Auto Deploy bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Default": "s3bucket",
+            "Description": "S3 bucket name for the HA Auto Deploy assets. HA Auto Deploy bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
+        },
+        "HAS3KeyPrefix": {
+            "Type": "String",
+            "AllowedPattern": "^[0-9a-zA-Z-/]*$",
+            "ConstraintDescription": "HA Auto Deploy key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
+            "Default": "ha-auto/",
+            "Description": "S3 key prefix for the HA Auto Deploy assets. HA Auto Deploy key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). If there is no S3 key prefix, leave it blank."
+        },
+        "AvailabilityZones": {
+            "Description": "The list of Availability Zones to use for the subnets in the VPC. The HA Auto Deploy uses two Availability Zones from your list and preserves the logical order you specify.",
+            "Type": "List<AWS::EC2::AvailabilityZone::Name>"
+        },
+        "VPCCIDR": {
+            "Type": "String",
+            "Default": "10.0.0.0/16",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]){1}(\\/([0-9]|[1-2][0-9]|3[0-2]))?$",
+            "ConstraintDescription": "must be a valid CIDR block format.",
+            "Description": "The CIDR block for the VPC."
+        },
+        "PublicSubnet1CIDR": {
+            "Type": "String",
+            "Default": "10.0.0.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]){1}(\\/([0-9]|[1-2][0-9]|3[0-2]))?$",
+            "ConstraintDescription": "must be a valid CIDR block format.",
+            "Description": "The CIDR block for the public (DMZ) subnet located in Availability Zone 1."
+        },
+        "PublicSubnet2CIDR": {
+            "Type": "String",
+            "Default": "10.0.2.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]){1}(\\/([0-9]|[1-2][0-9]|3[0-2]))?$",
+            "ConstraintDescription": "must be a valid CIDR block format.",
+            "Description": "The CIDR block for the public (DMZ) subnet located in Availability Zone 2."
+        },
+        "FortiWebImageVersion": {
+            "Type": "String",
+            "Default": "LATEST",
+            "ConstraintDescription": "must be a valid FortiWeb version.",
+            "Description": "FortiWeb version.",
+            "AllowedValues": [
+                "LATEST"
+            ]
+        },
+        "FortiWebImageType": {
+            "Type": "String",
+            "ConstraintDescription": "must be a valid FortiWeb Image type.",
+            "Description": "FortiWeb image type.",
+            "AllowedValues": [
+                "BYOL",
+                "OnDemand"
+            ]
+        },
+        "FortiWebInstanceType": {
+            "Type": "String",
+            "Default": "c5.large",
+            "AllowedValues": [
+                "t3.small",
+                "t3.medium",
+                "t3.large",
+                "t3.xlarge",
+                "t3.2xlarge",
+                "m5.large",
+                "m5.xlarge",
+                "m5.2xlarge",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m3.medium",
+                "m3.large",
+                "m3.xlarge",
+                "m3.2xlarge",
+                "c5.large",
+                "c5.xlarge",
+                "c5.2xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "r5.large",
+                "r5.xlarge",
+                "r5.2xlarge"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type.",
+            "Description": "Instance type to launch as FortiWeb instances. For more information about instance types, see https://aws.amazon.com/ec2/instance-types."
+        },
+        "FortiWebHAMode": {
+            "Type": "String",
+            "Default": "active-active-standard",
+            "AllowedValues": [
+                "active-active-high-volume",
+                "active-active-standard",
+                "active-passive"
+            ],
+            "ConstraintDescription": "must chose a HA mode.",
+            "Description": "HA work mode."
+        },
+        "FortiWebHAGroupName": {
+            "Type": "String",
+            "MaxLength": "19",
+            "AllowedPattern": "[A-Za-z0-9]+",
+            "ConstraintDescription": "must only contain uppercase and lowercase letters and numbers. Max length is 19.",
+            "Description": "HA group name, must only contain uppercase and lowercase letters and numbers. Max length is 19."
+        },
+        "FortiWebInstancesCount": {
+            "Type": "Number",
+            "Default": 2,
+            "MinValue": 1,
+            "MaxValue": 8,
+            "ConstraintDescription": "must be a valid number between 1 and 8.",
+            "Description": "The number of FortiWeb instances the HA cluster should have at any time. Minimum is 1. Maximum is 8."
+        },
+        "FortiWebHAGroupID": {
+            "Type": "Number",
+            "MinValue": 0,
+            "MaxValue": 63,
+            "ConstraintDescription": "must be a valid number between 0 and 63..",
+            "Description": "The Group ID that identifies the HA cluster. Minimum is 0. Maximum is 63"
+        },
+        "FortiWebHAOverride": {
+            "Type": "String",
+            "Default": "disable",
+            "AllowedValues": [
+                "enable",
+                "disable"
+            ],
+            "ConstraintDescription": "HA override.",
+            "Description": "HA Override. If enabled, the Device Priority will be a more important factor than uptime when selecting the master instance."
+        },
+        "FortiWebHttpPort": {
+            "Type": "Number",
+            "Default": 80,
+            "MinValue": 1,
+            "MaxValue": 65535,
+            "ConstraintDescription": "must be a valid port number between 1 and 65535.",
+            "Description": "The port that will receive HTTP web service traffic. Minimum is 1. Maximum is 65535."
+        },
+        "FortiWebHttpsPort": {
+            "Type": "Number",
+            "Default": 443,
+            "MinValue": 1,
+            "MaxValue": 65535,
+            "ConstraintDescription": "must be a valid port number between 1 and 65535.",
+            "Description": "The port that will receive HTTPS web service traffic. Minimum is 1. Maximum is 65535."
+        },
+        "KeyPairName": {
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "ConstraintDescription": "must specify an admin access key pair for FortiWeb instances.",
+            "Description": "Amazon EC2 Key pair for admin access."
+        },
+        "FortiWebAdminPassword": {
+            "Type": "String",
+            "NoEcho": true,
+            "MinLength" : "8",
+            "MaxLength": "16",
+            "AllowedPattern" : "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[$@$!%*#?&])[A-Za-z0-9$@$!%*#?&]{8,16}$",
+            "Description": "The admin password for deployed FortiWebs. The password needs to contain lowercase letters, uppercase letters, numbers, one of these special characters \"$@$!%*#?&\", and have a length between 8 and 16 characters."
+        }
+    },
+    "Conditions": {
+        "GovCloudCondition": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AWS::Region"
+                },
+                "us-gov-west-1"
+            ]
+        },
+
+        "IfAddNewEIP": {
+            "Fn::Equals": [
+                {
+                    "Ref": "FortiWebHAMode"
+                },
+                "active-passive"
+            ]
+        },
+        "IfAddNewLoadBalancer": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "FortiWebHAMode"
+                        },
+                        "active-passive"
+                    ]
+                }
+            ]
+        },
+        "IfAwscn":{
+            "Fn::Equals":[
+                {
+                    "Ref":"AWS::Partition"
+                },
+                "aws-cn"
+            ]
+        },
+        "IfImageTypeIsBYOL":{
+            "Fn::Equals":[
+                {
+                    "Ref":"FortiWebImageType"
+                },
+                "BYOL"
+            ]
+        }
+    },
+
+    "Resources": {
+        "StackCreateNewVPC": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "Parameters": {
+                    "AvailabilityZones": {
+                        "Fn::Join": [
+                            ",",
+                            {
+                                "Ref": "AvailabilityZones"
+                            }
+                        ]
+                    },
+
+                    "VPCCIDR": {
+                        "Ref": "VPCCIDR"
+                    },
+                    "PublicSubnet1CIDR": {
+                        "Ref": "PublicSubnet1CIDR"
+                    },
+                    "PublicSubnet2CIDR": {
+                        "Ref": "PublicSubnet2CIDR"
+                    },
+                    "CustomIdentifier":{
+                        "Ref":"CustomIdentifier"
+                    }
+                },
+                "TemplateURL": {
+                    "Fn::Sub": [
+                        "https://${HAS3BucketName}.${QSS3Region}${Region}.${URLSuffix}/${HAS3KeyPrefix}template/ha-vpc-create.template",
+                        {
+                            "QSS3Region": {
+                                "Fn::If": [
+                                    "GovCloudCondition",
+                                    "s3-us-gov-west-1",
+                                    "s3"
+                                ]
+                            },
+                            "Region":{
+                                "Fn::If":[
+                                    "IfAwscn",
+                                    {
+                                        "Fn::Join" : [
+                                            "",[
+                                                ".",
+                                                {
+                                                    "Ref":"AWS::Region"
+                                                }
+                                            ]
+                                        ]
+                                    },
+                                    ""
+                                ]
+                            },
+                            "URLSuffix":{
+                                "Ref":"AWS::URLSuffix"
+                            }
+                        }
+                    ]
+                },
+                "TimeoutInMinutes": "5"
+            }
+        },
+        "StackGetFwbLasterAmi": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "Parameters": {
+                    "CustomIdentifier":{
+                        "Ref":"CustomIdentifier"
+                    },
+                    "CodeS3BucketName": {
+                        "Ref":"HAS3BucketName"
+                    },
+                    "ZipCodeS3Key":{
+                        "Fn::Sub":[
+                             "${CodeS3Key}function/find_ami.zip",
+                             {
+                                "CodeS3Key":{
+                                    "Ref":"HAS3KeyPrefix"
+                                }
+                             }
+                        ]
+                    },
+                    "OnDemandNeeded":{
+                        "Fn::If": [
+                            "IfAwscn",
+                            "no",
+                            "yes"
+                        ]
+                    }
+                },
+                "TemplateURL": {
+                    "Fn::Sub": [
+                        "https://${HAS3BucketName}.${QSS3Region}${Region}.${URLSuffix}/${HAS3KeyPrefix}template/find-ami.template",
+                        {
+                            "QSS3Region": {
+                                "Fn::If": [
+                                    "GovCloudCondition",
+                                    "s3-us-gov-west-1",
+                                    "s3"
+                                ]
+                            },
+                            "Region":{
+                                "Fn::If":[
+                                    "IfAwscn",
+                                    {
+                                        "Fn::Join" : [
+                                            "",[
+                                                ".",
+                                                {
+                                                    "Ref":"AWS::Region"
+                                                }
+                                            ]
+                                        ]
+                                    },
+                                    ""
+                                ]
+                            },
+                            "URLSuffix":{
+                                "Ref":"AWS::URLSuffix"
+                            }
+                        }
+                    ]
+                },
+                "TimeoutInMinutes": "5"
+            }
+        },
+        "FwbHASecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "FortiWeb security group",
+                "VpcId": {
+                    "Fn::GetAtt": [
+                            "StackCreateNewVPC",
+                            "Outputs.FwbHAVpc"
+                        ]
+                },
+                "Tags": [
+                    {
+                        "Key":"Name",
+                        "Value":{
+                            "Ref":"CustomIdentifier"
+                        }
+                    }
+                ]
+            }
+        },
+        "FwbHASecurityGroupIngressInternal": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "-1",
+                "CidrIp": {
+                    "Ref": "VPCCIDR"
+                }
+            }
+        },
+        "FwbHASecurityGroupIngressSSH": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "FwbHASecurityGroupIngressAdminHttpsAccess": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8443",
+                "ToPort": "8443",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "FwbHASecurityGroupIngressAdminHttpAccess": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8080",
+                "ToPort":"8080",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "FwbHASecurityGroupEgressInternal": {
+            "Type": "AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "FwbSecurityGroupIngressAllowedTraffic1": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": {
+                    "Ref": "FortiWebHttpsPort"
+                },
+                "ToPort": {
+                    "Ref": "FortiWebHttpsPort"
+                },
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "FwbSecurityGroupIngressAllowedTraffic2": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "FwbHASecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": {
+                    "Ref": "FortiWebHttpPort"
+                },
+                "ToPort": {
+                    "Ref": "FortiWebHttpPort"
+                },
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "FwbHACreateEIP": {
+            "Type": "AWS::EC2::EIP",
+            "Condition": "IfAddNewEIP",
+            "Properties": {
+                "Domain":"vpc",
+                "Tags": [
+                    {
+                        "Key":"Name",
+                        "Value":{
+                            "Ref":"CustomIdentifier"
+                        }
+                    }
+                ]
+            }
+        },
+        "StackCreateInstances": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "Parameters": {
+                    "FortiWebInstanceType": {
+                        "Ref": "FortiWebInstanceType"
+                    },
+                    "FortiWebLatestAmiId":{
+                        "Fn::If":[
+                            "IfImageTypeIsBYOL",
+                            {
+                                "Fn::GetAtt": [
+                                    "StackGetFwbLasterAmi",
+                                    "Outputs.LatestBYOLAmiId"
+                                ]
+                            },
+                            {
+                                "Fn::GetAtt": [
+                                    "StackGetFwbLasterAmi",
+                                    "Outputs.LatestOnDemandAmiId"
+                                ]
+                            }
+                        ]
+                    },
+                    "FortiWebImageType" : {
+                        "Ref":"FortiWebImageType"
+                    },
+                    "FortiWebInstancesCount":{
+                        "Ref": "FortiWebInstancesCount"
+                    },
+                    "FortiWebHAGroupName": {
+                        "Ref": "FortiWebHAGroupName"
+                    },
+                    "FortiWebAdminPassword":{
+                        "Ref":"FortiWebAdminPassword"
+                    },
+                    "FortiWebHAMode":{
+                        "Ref":"FortiWebHAMode"
+                    },
+                    "FortiWebHAGroupID": {
+                        "Ref": "FortiWebHAGroupID"
+                    },
+                    "FortiWebHAOverride": {
+                        "Ref": "FortiWebHAOverride"
+                    },
+                    "CustomIdentifier": {
+                        "Ref": "CustomIdentifier"
+                    },
+                    "FwbHASecurityGroup": {
+                        "Ref": "FwbHASecurityGroup"
+                    },
+                    "KeyPairName": {
+                        "Ref": "KeyPairName"
+                    },
+                    "HAS3BucketName":{
+                        "Ref": "HAS3BucketName"
+                    },
+                    "HAS3KeyPrefix":{
+                        "Ref":"HAS3KeyPrefix"
+                    },
+                    "FortiWebHACfName":{
+                        "Ref": "AWS::StackName"
+                    },
+                    "PublicSubnet1":{
+                        "Fn::GetAtt": [
+                            "StackCreateNewVPC",
+                            "Outputs.PublicSubnet1"
+                        ]
+                    },
+                    "PublicSubnet2":{
+                        "Fn::GetAtt": [
+                            "StackCreateNewVPC",
+                            "Outputs.PublicSubnet2"
+                        ]
+                    },
+                    "FwbEIPId": {
+                        "Fn::If":[
+                            "IfAddNewEIP",
+                            {
+                                "Fn::GetAtt": [
+                                    "FwbHACreateEIP",
+                                    "AllocationId"
+                                ]
+                            },
+                            "Only AP mode need EIP"
+                        ]
+                    },
+
+                    "FwbEIPIP": {
+                        "Fn::If":[
+                            "IfAddNewEIP",
+                            {
+                                "Ref":"FwbHACreateEIP"
+                            },
+                            "Only AP mode need EIP"
+                        ]
+                    },
+                    "ELBHTTPSTargetGroup":{
+                        "Fn::If":[
+                            "IfAddNewLoadBalancer",
+                            {
+                                "Ref":"ElbV2HTTPSTargetGroupFwbHa"
+                            },
+                            "Only AA/Cluster mode need ELB"
+                        ]
+                    },
+                    "ELBHTTPTargetGroup":{
+                        "Fn::If":[
+                            "IfAddNewLoadBalancer",
+                            {
+                                "Ref":"ElbV2HTTPTargetGroupFwbHa"
+                            },
+                            "Only AA/Cluster mode need ELB"
+                        ]
+                    }
+                },
+                "TemplateURL": {
+                    "Fn::Sub": [
+                        "https://${HAS3BucketName}.${QSS3Region}${Region}.${URLSuffix}/${HAS3KeyPrefix}template/ha-instance-create.template",
+                        {
+                            "QSS3Region": {
+                                "Fn::If": [
+                                    "GovCloudCondition",
+                                    "s3-us-gov-west-1",
+                                    "s3"
+                                ]
+                            },
+                            "Region":{
+                                "Fn::If":[
+                                    "IfAwscn",
+                                    {
+                                        "Fn::Join" : [
+                                            "",[
+                                                ".",
+                                                {
+                                                    "Ref":"AWS::Region"
+                                                }
+                                            ]
+                                        ]
+                                    },
+                                    ""
+                                ]
+                            },
+                            "URLSuffix":{
+                                "Ref":"AWS::URLSuffix"
+                            }
+                        }
+                    ]
+                },
+                "TimeoutInMinutes": "5"
+            }
+        },
+        "ElbV2HTTPTargetGroupFwbHa": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Condition": "IfAddNewLoadBalancer",
+            "Properties": {
+                "Name": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "CustomIdentifier"
+                            },
+                            "HTTPtgFwb",
+                            {
+                                "Fn::Select": [
+                                    0,
+                                    {
+                                        "Fn::Split": [
+                                            "-",
+                                            {
+                                                "Fn::Select": [
+                                                    2,
+                                                    {
+                                                        "Fn::Split": [
+                                                            "/",
+                                                            {
+                                                                "Ref": "AWS::StackId"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    ]
+                },
+                "Protocol": "TCP",
+                "Port": {
+                    "Ref": "FortiWebHttpPort"
+                },
+                "HealthCheckProtocol": "TCP",
+                "HealthCheckPort": {
+                    "Ref": "FortiWebHttpPort"
+                },
+                "VpcId": {
+                    "Fn::GetAtt": [
+                        "StackCreateNewVPC",
+                        "Outputs.FwbHAVpc"
+                    ]
+                }
+            }
+        },
+        "ElbV2HTTPSTargetGroupFwbHa": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Condition": "IfAddNewLoadBalancer",
+            "Properties": {
+                "Name": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "CustomIdentifier"
+                            },
+                            "HTTPStgFwb",
+                            {
+                                "Fn::Select": [
+                                    0,
+                                    {
+                                        "Fn::Split": [
+                                            "-",
+                                            {
+                                                "Fn::Select": [
+                                                    2,
+                                                    {
+                                                        "Fn::Split": [
+                                                            "/",
+                                                            {
+                                                                "Ref": "AWS::StackId"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    ]
+                },
+                "Protocol": "TCP",
+                "Port": {
+                    "Ref": "FortiWebHttpsPort"
+                },
+                "HealthCheckProtocol": "TCP",
+                "HealthCheckPort": {
+                    "Ref": "FortiWebHttpsPort"
+                },
+                "VpcId": {
+                    "Fn::GetAtt": [
+                        "StackCreateNewVPC",
+                        "Outputs.FwbHAVpc"
+                    ]
+                }
+            }
+        },
+        "ElbV2LoadBalancerFwbHa": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Condition": "IfAddNewLoadBalancer",
+            "Properties": {
+                "Scheme": "internet-facing",
+                "Type": "network",
+                "Subnets": [
+                    {
+                        "Fn::GetAtt": [
+                            "StackCreateNewVPC",
+                            "Outputs.PublicSubnet1"
+                        ]
+                    },
+                    {
+                        "Fn::GetAtt": [
+                            "StackCreateNewVPC",
+                            "Outputs.PublicSubnet2"
+                        ]
+                    }
+                ],
+                "Name": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "CustomIdentifier"
+                            },
+                            "nlbFwb",
+                            {
+                                "Fn::Select": [
+                                    0,
+                                    {
+                                        "Fn::Split": [
+                                            "-",
+                                            {
+                                                "Fn::Select": [
+                                                    2,
+                                                    {
+                                                        "Fn::Split": [
+                                                            "/",
+                                                            {
+                                                                "Ref": "AWS::StackId"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key":"Name",
+                        "Value":{
+                            "Ref":"CustomIdentifier"
+                        }
+                    }
+                ]
+
+            },
+            "DependsOn": [
+                "ElbV2HTTPSTargetGroupFwbHa",
+                "ElbV2HTTPTargetGroupFwbHa"
+            ]
+        },
+        "ElbV2HTTPListenerFwbHa": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Condition": "IfAddNewLoadBalancer",
+            "Properties": {
+                "LoadBalancerArn": {
+                    "Ref": "ElbV2LoadBalancerFwbHa"
+                },
+                "DefaultActions": [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "ElbV2HTTPTargetGroupFwbHa"
+                        }
+                    }
+                ],
+                "Protocol": "TCP",
+                "Port": {"Ref": "FortiWebHttpPort"}
+            },
+            "DependsOn": [
+                "ElbV2LoadBalancerFwbHa",
+                "ElbV2HTTPTargetGroupFwbHa"
+            ]
+        },
+        "ElbV2HTTPSListenerFwbHa": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Condition": "IfAddNewLoadBalancer",
+            "Properties": {
+                "LoadBalancerArn": {
+                    "Ref": "ElbV2LoadBalancerFwbHa"
+                },
+                "DefaultActions": [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "ElbV2HTTPSTargetGroupFwbHa"
+                        }
+                    }
+                ],
+                "Protocol": "TCP",
+                "Port": {"Ref": "FortiWebHttpsPort"}
+            },
+            "DependsOn": [
+                "ElbV2LoadBalancerFwbHa",
+                "ElbV2HTTPSTargetGroupFwbHa"
+            ]
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "Common configuration"
+                    },
+                    "Parameters": [
+                        "AvailabilityZones",
+                        "CustomIdentifier",
+                        "HAS3BucketName",
+                        "HAS3KeyPrefix",
+                        "KeyPairName"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Network configuration"
+                    },
+                    "Parameters": [
+                        "VPCCIDR",
+                        "PublicSubnet1CIDR",
+                        "PublicSubnet2CIDR"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "FortiWeb configuration"
+                    },
+                    "Parameters": [
+                        "FortiWebImageType",
+                        "FortiWebImageVersion",
+                        "FortiWebInstanceType",
+                        "FortiWebInstancesCount",
+                        "FortiWebAdminPassword",
+                        "FortiWebHttpPort",
+                        "FortiWebHttpsPort"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "FortiWeb HA configuration"
+                    },
+                    "Parameters": [
+                        "FortiWebHAMode",
+                        "FortiWebHAGroupName",
+                        "FortiWebHAGroupID",
+                        "FortiWebHAOverride"
+                    ]
+                }
+            ],
+            "ParameterLabels": {
+				"AvailabilityZones": {
+                    "default": "Availability Zones"
+                },
+                "CustomIdentifier": {
+                    "default": "Resource name prefix"
+                },
+                "HAS3BucketName": {
+                    "default": "HA Auto Deploy S3 bucket name"
+                },
+                "HAS3KeyPrefix": {
+                    "default": "HA Auto Deploy S3 key prefix"
+                },
+                "KeyPairName": {
+                    "default": "Key pair name"
+                },
+                "VPCCIDR": {
+                    "default": "VPC CIDR"
+                },
+                "PublicSubnet1CIDR": {
+                    "default": "VPC Subnet1"
+                },
+                "PublicSubnet2CIDR": {
+                    "default": "VPC Subnet2"
+                },
+                "FortiWebImageType": {
+                    "default": "FortiWeb Image Type"
+                },
+                "FortiWebImageVersion": {
+                    "default": "FortiWeb Image Version"
+                },
+                "FortiWebInstanceType": {
+                    "default": "FortiWeb Instance type"
+                },
+                "FortiWebInstancesCount": {
+                    "default": "FortiWeb Instance Count"
+                },
+                "FortiWebAdminPassword": {
+                    "default": "FortiWeb Admin password"
+                },
+                "FortiWebHttpPort": {
+                    "default": "FortiWeb Http Port"
+                },
+                "FortiWebHttpsPort": {
+                    "default": "FortiWeb Https Port"
+                },
+                "FortiWebHAMode": {
+                    "default": "FortiWeb HA Mode"
+                },
+                "FortiWebHAGroupName": {
+                    "default": "FortiWeb HA Group Name"
+                },
+                "FortiWebHAGroupID": {
+                    "default": "FortiWeb HA GroupID"
+                },
+                "FortiWebHAOverride": {
+                    "default": "FortiWeb HA Override"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "InstanceId": {
+            "Description": "Instance Id list",
+            "Value": {
+                "Fn::GetAtt": [
+                    "StackCreateInstances",
+                    "Outputs.InstancesId"
+                ]
+            }
+        },
+        "VpcId": {
+            "Description": "Vpc id",
+            "Value": {
+                "Fn::GetAtt": [
+                    "StackCreateNewVPC",
+                    "Outputs.FwbHAVpc"
+                ]
+            }
+        },
+        "Subnet1":{
+            "Description": "Subnet1",
+            "Value": {
+                "Fn::GetAtt": [
+                    "StackCreateNewVPC",
+                    "Outputs.PublicSubnet1"
+                ]
+            }
+        },
+        "Subnet2":{
+            "Description": "Subnet2",
+            "Value": {
+                "Fn::GetAtt": [
+                    "StackCreateNewVPC",
+                    "Outputs.PublicSubnet2"
+                ]
+            }
+        },
+        "EipId":{
+            "Description": "Elastic Id",
+            "Condition":"IfAddNewEIP",
+            "Value": {
+                "Fn::GetAtt": [
+                    "FwbHACreateEIP",
+                    "AllocationId"
+                ]
+            }
+        },
+        "EipIP":{
+            "Description": "Elastic IP",
+            "Condition":"IfAddNewEIP",
+            "Value": {
+                "Ref":"FwbHACreateEIP"
+            }
+        },
+        "LoadBalancer":{
+            "Description": "LoadBalancer DNS name",
+            "Condition":"IfAddNewLoadBalancer",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ElbV2LoadBalancerFwbHa",
+                    "DNSName"
+                ]
+            }
+        },
+        "SecurityGroup":{
+            "Description": "Security Group Id",
+            "Value": {
+                "Ref":"FwbHASecurityGroup"
+            }
+        },
+        "FwbAmiVersion":{
+            "Description" :"image version",
+            "Value":{
+                "Fn::If":[
+                    "IfImageTypeIsBYOL",
+                    {
+                        "Fn::GetAtt": [
+                            "StackGetFwbLasterAmi",
+                            "Outputs.LatestBYOLAmiVersion"
+                        ]
+                    },
+                    {
+                        "Fn::GetAtt": [
+                            "StackGetFwbLasterAmi",
+                            "Outputs.LatestOnDemandAmiVersion"
+                        ]
+                    }
+                ]
+            }
+        },
+        "FwbAmiId":{
+            "Description":"ami id",
+            "Value":{
+                "Fn::If":[
+                    "IfImageTypeIsBYOL",
+                    {
+                        "Fn::GetAtt": [
+                            "StackGetFwbLasterAmi",
+                            "Outputs.LatestBYOLAmiId"
+                        ]
+                    },
+                    {
+                        "Fn::GetAtt": [
+                            "StackGetFwbLasterAmi",
+                            "Outputs.LatestOnDemandAmiId"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

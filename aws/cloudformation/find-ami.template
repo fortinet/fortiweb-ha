@@ -1,0 +1,197 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "This template find LATEST AMI.",
+    "Parameters": {
+        "CustomIdentifier": {
+            "Type": "String"
+        },
+        "CodeS3BucketName": {
+            "Type": "String"
+        },
+        "ZipCodeS3Key": {
+            "Type": "String"
+        },
+        "BYOLAMIName": {
+            "Type": "String",
+            "Default": ""
+        },
+        "OnDemandAMIName": {
+            "Type": "String",
+            "Default": ""
+        },
+        "BYOLNeeded":{
+            "Type":"String",
+            "Default":""
+        },
+        "OnDemandNeeded":{
+            "Type":"String",
+            "Default":""
+        }
+    },
+    "Resources": {
+        "callLambda": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "LambdaFunction",
+                        "Arn"
+                    ]
+                },
+                "BYOLAMIName": {
+                    "Ref": "BYOLAMIName"
+                },
+                "OnDemandAMIName": {
+                    "Ref": "OnDemandAMIName"
+                },
+                "OnDemandNeeded":{
+                    "Ref":"OnDemandNeeded"
+                },
+                "BYOLNeeded":{
+                    "Ref":"BYOLNeeded"
+                }
+            }
+        },
+        "LambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "CustomIdentifier"
+                            },
+                            "findLatestAMI",
+                            {
+                                "Fn::Select": [
+                                    0,
+                                    {
+                                        "Fn::Split": [
+                                            "-",
+                                            {
+                                                "Fn::Select": [
+                                                    2,
+                                                    {
+                                                        "Fn::Split": [
+                                                            "/",
+                                                            {
+                                                                "Ref": "AWS::StackId"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    ]
+                },
+                "Description": "Find LATEST FortiWeb AMI",
+                "Handler": "find_ami.handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaFuncRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python2.7",
+                "Timeout": 240,
+                "Code": {
+                    "S3Bucket": {
+                        "Ref": "CodeS3BucketName"
+                    },
+                    "S3Key": {
+                        "Ref": "ZipCodeS3Key"
+                    }
+                }
+            }
+        },
+        "LambdaFuncRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": "sts:AssumeRole",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            }
+                        }
+                    ],
+                    "Version": "2012-10-17"
+                },
+                "ManagedPolicyArns": [
+                    "Fn::Sub":[
+                        "arn:${Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+                        "Partition":{ "Ref":"AWS::Partition"}
+                    ]
+                ],
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "ec2:DescribeImages",
+                                    "Resource": "*"
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "object-find-ami"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "LatestBYOLAmiId": {
+            "Description": "LatestBYOLAmiId",
+            "Value": {
+                "Fn::GetAtt": [
+                    "callLambda",
+                    "LatestBYOLAmiId"
+                ]
+            }
+        },
+        "LatestOnDemandAmiId": {
+            "Description": "LatestOnDemandAmiId",
+            "Value": {
+                "Fn::GetAtt": [
+                    "callLambda",
+                    "LatestOnDemandAmiId"
+                ]
+            }
+        },
+        "LatestBYOLAmiVersion": {
+            "Description": "LatestBYOLAmiVersion",
+            "Value": {
+                "Fn::GetAtt": [
+                    "callLambda",
+                    "LatestBYOLAmiVersion"
+                ]
+            }
+        },
+        "LatestOnDemandAmiVersion": {
+            "Description": "LatestOnDemandAmiVersion",
+            "Value": {
+                "Fn::GetAtt": [
+                    "callLambda",
+                    "LatestOnDemandAmiVersion"
+                ]
+            }
+        }
+    }
+}
