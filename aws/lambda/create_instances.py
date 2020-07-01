@@ -159,7 +159,7 @@ def del_ec2_instance(event):
     print(instanceIds)
     Resource = event['ResourceProperties']
     response = client.delete_tags(Resources = instanceIds,
-                                Tags=
+                                Tags=[
                                 {
                                      'Key': Resource['FortiWebHACfName'] + '-instance',
                                      'Value':Resource['FortiWebHACfName']

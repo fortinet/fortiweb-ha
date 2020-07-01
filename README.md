@@ -4,7 +4,7 @@ This project contains the code and templates for the **Amazon AWS** and **Micros
 
 This project is organized in separate node modules:
 * [fortiweb-ha/azure](azure) contains a template for the deployment of Fortiweb HA on the **Microsoft Azure** platform API.
- * [fortiweb-ha/aws](aws) contains templates and lambda function for the deployment of Fortiweb HA on the **AWS SDK** platform API.
+* [fortiweb-ha/aws](aws) contains templates and lambda function for the deployment of Fortiweb HA on the **AWS SDK** platform API.
 
 The project also contains a deployment script that can generate packages for each cloud service's *serverless* implementation.
 
@@ -27,8 +27,8 @@ Deployment packages as well as source code will be available in the **dist** dir
 | fortiweb-ha-azure-quickstart.zip | Azure template. Use this to deploy the solution on the Azure platform.|
 
 Installation Guides are available from the Fortinet Document Library:
-  * [ FortiWeb /Use Case: High Availability for FortiWeb on AWS](https://docs.fortinet.com/vm/aws/fortiweb/6.3/use-case-high-availability-for-fortiweb-on-aws/6.3.4/556435/overview)
-  * [ FortiWeb /Use Case: High Availability for FortiWeb on Azure](https://docs.fortinet.com/vm/azure/fortiweb/6.3/use-case-high-availability-for-fortiweb-on-azure/6.3.4/277766/overview)
+  * [ FortiWeb /Use Case: High Availability for FortiWeb on AWS](https://docs.fortinet.com/vm/aws/fortiweb)
+  * [ FortiWeb /Use Case: High Availability for FortiWeb on Azure](https://docs.fortinet.com/vm/azure/fortiweb)
 
 # Support
 Fortinet-provided scripts in this and other GitHub projects do not fall under the regular Fortinet technical support scope and are not supported by FortiCare Support Services.
