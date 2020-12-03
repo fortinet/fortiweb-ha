@@ -104,7 +104,6 @@
             "Default": "active-active-standard",
             "AllowedValues": [
                 "active-active-high-volume",
-                "active-active-standard",
                 "active-passive"
             ],
             "ConstraintDescription": "must chose a HA mode.",
