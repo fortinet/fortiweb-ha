@@ -101,7 +101,7 @@
         },
         "FortiWebHAMode": {
             "Type": "String",
-            "Default": "active-active-standard",
+            "Default": "active-active-high-volume",
             "AllowedValues": [
                 "active-active-high-volume",
                 "active-passive"

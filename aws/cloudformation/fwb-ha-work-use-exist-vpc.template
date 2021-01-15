@@ -95,10 +95,9 @@
         },
         "FortiWebHAMode": {
             "Type": "String",
-            "Default": "active-active-standard",
+            "Default": "active-active-high-volume",
             "AllowedValues": [
                 "active-active-high-volume",
-                "active-active-standard",
                 "active-passive"
             ],
             "ConstraintDescription": "must chose a HA mode.",
