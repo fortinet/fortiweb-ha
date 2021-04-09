@@ -191,7 +191,6 @@
             "type": "string",
             "allowedValues":[
                 "active-active-high-volume",
-                "active-active-standard",
                 "active-passive"
             ],
             "metadata":{
