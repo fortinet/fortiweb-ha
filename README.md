@@ -21,7 +21,7 @@ This project supports Fortiweb HA for the cloud platforms listed below.
 To generate local deployment packages:
 
   1. Clone this project.
-  2. Run `./script/make_dist.sh` at the project root directory.
+  2. Run `./scripts/make_dist.sh` at the project root directory.
 
 Deployment packages as well as source code will be available in the **dist** directory.
 
@@ -32,8 +32,8 @@ Deployment packages as well as source code will be available in the **dist** dir
 
 Installation Guides are available from the Fortinet Document Library:
 
-* [FortiWeb /Use Case: High Availability for FortiWeb on AWS](https://docs.fortinet.com/vm/aws/fortiweb)
-* [FortiWeb /Use Case: High Availability for FortiWeb on Azure](https://docs.fortinet.com/vm/azure/fortiweb)
+* [FortiWeb /Use Case: High Availability for FortiWeb on AWS](https://docs.fortinet.com/document/fortiweb-public-cloud/latest/use-case-high-availability-for-fortiweb-on-aws)
+* [FortiWeb /Use Case: High Availability for FortiWeb on Azure](https://docs.fortinet.com/document/fortiweb-public-cloud/latest/use-case-high-availability-for-fortiweb-on-azure/)
 
 ## Support
 
