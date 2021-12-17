@@ -1,0 +1,39 @@
+name: fortiweb-ha
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build:
+    name: build-web-ha
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: create-dist
+        run: |
+          mkdir dist
+          mkdir -p tmp/function
+          mkdir -p tmp/template
+          cd ./aws/lambda/
+          zip find_ami.zip ./find_ami.py
+          zip lambda.zip ./create_instances.py ./cfnresponse.py
+          mv find_ami.zip lambda.zip ../../tmp/function/
+          cd ../cloudformation
+          cp -r ./ ../../tmp/template
+          cd ../../tmp
+          zip -r fortiweb-ha-aws-cloudformation.zip ./
+          mv fortiweb-ha-aws-cloudformation.zip ../dist/
+          cp ../azure/templates/deploy_fwb_ha.json ./
+          zip fortiweb-ha-azure-quickstart.zip ./deploy_fwb_ha.json
+          mv fortiweb-ha-azure-quickstart.zip ../dist/
+          cd ../
+          rm -r ./tmp/
+      - name: upload-ha-zip
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{secrets.GITHUB_TOKEN}}
+          file: ./dist/*
+          tag: ${{github.ref}}
+          overwrite: true
+          file_glob: true
+          body: "FortiWEB HA Release"
