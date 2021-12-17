@@ -620,7 +620,7 @@
                         }
                     ]
                 },
-                "TimeoutInMinutes": "5"
+                "TimeoutInMinutes": "30"
             }
         },
         "ElbV2HTTPTargetGroupFwbHa": {
