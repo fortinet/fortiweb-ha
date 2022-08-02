@@ -317,7 +317,7 @@
 
         "vmImageSkuMap":{
             "BYOL":"fortinet_fw-vm",
-            "OnDemand":"fortinet_fw-vm_payg"
+            "OnDemand":"fortinet_fw-vm_payg_v2"
         },
         "vmImagePlan":{
             "name": "[variables('vmImageSkuMap')[parameters('vmImageType')]]",
