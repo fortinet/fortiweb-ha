@@ -1,5 +1,5 @@
 # FortiWeb HA
-
+# Version 1.0.8
 This project contains the code and templates for the **Amazon AWS** and **Microsoft Azure** Fortiweb HA deployments.
 
 This project is organized in separate node modules:
