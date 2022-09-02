@@ -1,0 +1,9 @@
+config system ha
+    set mode active-active-high-volume
+    set group-name group1
+    set priority 2
+    set tunnel-local ${active1_port3_ip}
+    set tunnel-peer ${active2_hb_ip}
+    set monitor port3 port1
+    set override enable
+end

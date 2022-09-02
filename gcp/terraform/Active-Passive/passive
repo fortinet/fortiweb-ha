@@ -1,0 +1,10 @@
+config system ha
+    set mode active-passive
+    set group-name group1
+    set priority 8
+    set tunnel-local ${passive_port3_ip}
+    set tunnel-peer ${active_hb_ip}
+    set monitor port3 port1
+    set lb-gcp "${lb_name}"
+    set override enable    
+end
