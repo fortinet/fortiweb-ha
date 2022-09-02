@@ -26,6 +26,9 @@ jobs:
           cp ../azure/templates/deploy_fwb_ha.json ./
           zip fortiweb-ha-azure-quickstart.zip ./deploy_fwb_ha.json
           mv fortiweb-ha-azure-quickstart.zip ../dist/
+          cd ../gcp
+          zip -r fortiweb-ha-gcp-terraform.zip ./
+          mv fortiweb-ha-gcp-terraform.zip ../dist/
           cd ../
           rm -r ./tmp/
       - name: upload-ha-zip
