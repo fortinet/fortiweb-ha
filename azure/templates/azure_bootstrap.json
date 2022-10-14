@@ -265,7 +265,7 @@
             "publisher": "fortinet",
             "offer": "fortinet_fortiweb-vm_v5",
             "sku": "fortinet_fw-vm",
-            "version": "6.3.11"
+            "version": "7.0.3"
           },
           "osDisk": {
             "osType": "Linux",
