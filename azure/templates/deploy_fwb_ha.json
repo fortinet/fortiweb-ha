@@ -47,6 +47,28 @@
                 "description": "Size of VM in the FortiWeb set VM instances"
             }
         },
+        "availabilityOptions": {
+            "type": "string",
+            "allowedValues": [
+              "Availability Set",
+              "Availability Zones"
+            ],
+            "defaultValue": "Availability Set",
+            "metadata": {
+              "description": "Deploy FortiGate VMs in an Availability Set or Availability Zones. If Availability Zones deployment is selected but the location does not support Availability Zones an Availability Set will be deployed. If Availability Zones deployment is selected and Availability Zones are available in the location, FortiGate A will be placed in Zone 1, FortiGate B will be placed in Zone 2"
+            }
+          },
+          "acceleratedNetworking": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+              "false",
+              "true"
+            ],
+            "metadata": {
+              "description": "Accelerated Networking enables direct connection between the VM and network card. Only available on 2 CPU F/Fs and 4 CPU D/Dsv2, D/Dsv3, E/Esv3, Fsv2, Lsv2, Ms/Mms and Ms/Mmsv2"
+            }
+          },
         "vmAdminUsername": {
             "minLength": 3,
             "maxLength": 48,
@@ -263,6 +285,9 @@
         "LBResourceId": "[resourceId('Microsoft.Network/loadBalancers', variables('LBName'))]",
         "adminPasswordBySSHKey": "[concat('Fwb123#', uniqueString(parameters('vmSshPublicKey')))]",
         "haAvailabilitySet":"[concat(parameters('resourceNamePrefix'), '-availabilitySet')]",
+        "haAvailabilitySetPropertyID": {
+            "id": "[resourceId('Microsoft.Compute/availabilitySets', concat(parameters('resourceNamePrefix'), '-availabilitySet'))]"
+        },
         "location":"[resourceGroup().location]",
         "LBFrontIPConfProMap": {
             "Internal": {
@@ -286,6 +311,13 @@
                 }
             ]
         },
+        "useAZ": "[and(not(empty(pickZones('Microsoft.Compute', 'virtualMachines', variables('location')))), equals(parameters('availabilityOptions'), 'Availability Zones'))]",
+        "zone1": [
+            "1"
+          ],
+          "zone2": [
+            "2"
+          ],
         "customDataInitArray":{
             "copy":[
                 {
@@ -353,6 +385,7 @@
     ],
     "resources":[
         {
+            "condition": "[not(variables('useAZ'))]",
             "apiVersion":"2018-06-01",
             "name":"[variables('haAvailabilitySet')]",
             "type":"Microsoft.Compute/availabilitySets",
@@ -427,7 +460,8 @@
                             ]
                         }
                     }
-                ]
+                ],
+                "enableAcceleratedNetworking": "[parameters('acceleratedNetworking')]"
             },
              "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
@@ -457,7 +491,7 @@
                         }
                     }
                 ],
-                "enableAcceleratedNetworking":false,
+                "enableAcceleratedNetworking": "[parameters('acceleratedNetworking')]",
                 "enableIPForwarding": false
             },
             "dependsOn": [
@@ -675,11 +709,9 @@
                  "name":"InstanceCopy",
                  "count":"[parameters('vmCount')]"
             },
-
+            "zones": "[if(variables('useAZ'), variables(concat('zone',copyIndex(1))), json('null'))]",
             "properties": {
-                "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('haAvailabilitySet'))]"
-                },
+                "availabilitySet": "[if(not(variables('useAZ')), variables('haAvailabilitySetPropertyID'), json('null'))]",
                 "hardwareProfile": {
                     "vmSize": "[parameters('vmSku')]"
                 },
