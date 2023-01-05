@@ -144,6 +144,10 @@
       "type": "string",
       "defaultValue": "config system global\n set timezone 02\n end"
     },
+    "flxexVm": {
+      "type": "string",
+      "defaultValue": ""
+    },
     "usrCLIUri": {
       "type": "string",
       "defaultValue": "https://fwbsctesthdhsc.blob.core.windows.net/cloudinitdtest/usr-cli-file.txt?st=2019-08-21T06%3A48%3A00Z&se=2019-08-23T06%3A48%3A29Z&sp=rl&sv=2018-03-28&sr=b&sig=KyqXzuKrw36eqflsAKXuWX9QZh0SCT%2BkayGsAe4mo9I%3D"
@@ -161,6 +165,7 @@
 	"usrCLI": "[concat(',\"usr-cli\": \"', parameters('usrCLI'), '\"')]",
     "usrCLIUri": "[concat(',\"usr-cli-uri\": \"', parameters('usrCLIUri'), '\"')]",
     "usrLicenseUri": "[concat(',\"usr-license-uri\": \"', parameters('usrLicenseUri'), '\"')]",
+    "flxexVm": "[concat(',\"flex_token\": \"', parameters('flxexVm'), '\"')]",
     "customData": "[concat('{', variables('cloudInitd'), variables('usrCLI'), variables('usrCLIUri'), variables('usrLicenseUri'), '}')]"
   },
   "resources": [
