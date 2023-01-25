@@ -16,6 +16,7 @@ variable "service_account" {
 variable "image" {
   type    = string
   default = "https://www.googleapis.com/compute/v1/projects/fortigcp-project-001/global/images/fwb-720-payg-21122022-001-w-license"
+  #default = "https://www.googleapis.com/compute/v1/projects/fortigcp-project-001/global/images/fwb-720-byol-21122022-001-w-license"
 }
 # GCP region
 variable "region" {
