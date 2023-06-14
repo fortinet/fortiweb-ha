@@ -27,8 +27,8 @@ Deployment packages as well as source code will be available in the **dist** dir
 | fortiweb-ha-azure-quickstart.zip | Azure template. Use this to deploy the solution on the Azure platform.|
 
 Installation Guides are available from the Fortinet Document Library:
-  * [ FortiWeb /Use Case: High Availability for FortiWeb on AWS](https://docs.fortinet.com/vm/aws/fortiweb)
-  * [ FortiWeb /Use Case: High Availability for FortiWeb on Azure](https://docs.fortinet.com/vm/azure/fortiweb)
+  * [ FortiWeb /Use Case: High Availability for FortiWeb on AWS](https://docs.fortinet.com/document/fortiweb-public-cloud/latest/use-case-high-availability-for-fortiweb-on-aws)
+  * [ FortiWeb /Use Case: High Availability for FortiWeb on Azure](https://docs.fortinet.com/document/fortiweb-public-cloud/latest/use-case-high-availability-for-fortiweb-on-azure)
 
 # Support
 Fortinet-provided scripts in this and other GitHub projects do not fall under the regular Fortinet technical support scope and are not supported by FortiCare Support Services.
