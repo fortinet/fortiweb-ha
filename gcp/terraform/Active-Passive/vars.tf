@@ -15,8 +15,8 @@ variable "service_account" {
 # FortiWeb Image name
 variable "image" {
   type    = string  
-  default = "https://www.googleapis.com/compute/v1/projects/fortigcp-project-001/global/images/fwb-724-payg-07182023-001-w-license"
-  #default = "https://www.googleapis.com/compute/v1/projects/fortigcp-project-001/global/images/fwb-724-byol-07182023-001-w-license"
+  default = "https://www.googleapis.com/compute/v1/projects/fortigcp-project-001/global/images/fwb-740-payg-07242023-001-w-license"
+  #default = "https://www.googleapis.com/compute/v1/projects/fortigcp-project-001/global/images/fwb-740-byol-07242023-001-w-license"
 }
 # GCP region
 variable "region" {
