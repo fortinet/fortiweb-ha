@@ -213,6 +213,7 @@ resource "google_compute_instance" "default" {
   metadata = {
     user-data = "${data.template_file.setup-active.rendered}"
     license   = fileexists("${path.module}/${var.licenseFile}") ? "${file(var.licenseFile)}" : null
+    flex_token = var.flextoken == "" ? null : var.flextoken
   }
   service_account {
     email  = "${var.service_account}"
@@ -259,6 +260,7 @@ resource "google_compute_instance" "default2" {
   metadata = {
     user-data = "${data.template_file.setup-passive.rendered}"
     license   = fileexists("${path.module}/${var.licenseFile2}") ? "${file(var.licenseFile2)}" : null
+    flex_token = var.flextoken2 == "" ? null : var.flextoken2
   }
   service_account {
     email  = "${var.service_account}"

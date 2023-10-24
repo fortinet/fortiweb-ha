@@ -67,6 +67,17 @@ variable "licenseFile2" {
   default = "license2.lic"
 }
 
+# flex token for active
+variable "flextoken" {
+  type    = string
+  default = ""
+}
+# flex token for active2
+variable "flextoken2" {
+  type    = string
+  default = ""
+}
+
 variable "mgmt_mask" {
   type    = string
   default = "255.255.255.0"
