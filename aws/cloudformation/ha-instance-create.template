@@ -13,6 +13,9 @@
         "FortiWebImageType":{
             "Type": "String"
         },
+		"FortiWebFortiFlex": {
+			"Type": "String"
+		},
         "FortiWebInstancesCount":{
              "Type": "Number"
         },
@@ -83,6 +86,9 @@
                 "FortiWebImageType":{
                     "Ref":"FortiWebImageType"
                 },
+				"FortiWebFortiFlex": {
+					"Ref":"FortiWebFortiFlex"
+				},
                 "InstanceType": {
                     "Ref": "FortiWebInstanceType"
                 },
