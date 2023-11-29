@@ -85,7 +85,10 @@ def InitInsParam(event, count, lic_files):
     UserData += '\n\"HaGroupName\":\"' +Resource['FortiWebHAGroupName'] + '\",'
     UserData += '\n\"HaGroupId\":\"' + Resource['FortiWebHAGroupID']+'\",'
     UserData += '\n\"HaOverride\":\"' +Resource['FortiWebHAOverride'] +'\",'
-    UserData += '\n\"flex_token\":\"' +Resource['FortiWebFortiFlex'] +'\",'
+	if count == 0:
+		UserData += '\n\"flex_token\":\"' +Resource['FortiWebFortiFlex1'] +'\",'
+	else:
+		UserData += '\n\"flex_token\":\"' +Resource['FortiWebFortiFlex2'] +'\",'
     if Resource['FortiWebImageType'].find('BYOL') != -1:
         UserData += '\n\"HaBucket\":\"' +Resource['HAS3BucketName'] +'\",'
         UserData += '\n\"HaLicense\":\"' + lic_files[count] +'\",'

@@ -67,11 +67,17 @@
                 "OnDemand"
             ]
         },
-		"FortiWebFortiFlex" : {
+		"FortiWebFortiFlex1" : {
 			"Type": "String",
             "AllowedPattern": "[A-Za-z0-9]+",
             "ConstraintDescription": "must only contain uppercase and lowercase letters and numbers.",
-			"Description": "FortiFlex license file token."
+			"Description": "FortiFlex license file token (BYOL only)."
+		},
+		"FortiWebFortiFlex2" : {
+			"Type": "String",
+            "AllowedPattern": "[A-Za-z0-9]+",
+            "ConstraintDescription": "must only contain uppercase and lowercase letters and numbers.",
+			"Description": "FortiFlex license file token (BYOL only)."
 		},
         "FortiWebInstanceType": {
             "Type": "String",
@@ -504,8 +510,11 @@
                     "FortiWebImageType" : {
                         "Ref":"FortiWebImageType"
                     },
-					"FortiWebFortiFlex" : {
-						"Ref": "FortiWebFortiFlex"
+					"FortiWebFortiFlex1" : {
+						"Ref": "FortiWebFortiFlex1"
+					},
+					"FortiWebFortiFlex2" : {
+						"Ref": "FortiWebFortiFlex2"
 					},
                     "FortiWebInstancesCount":{
                         "Ref": "FortiWebInstancesCount"
@@ -887,7 +896,8 @@
                     },
                     "Parameters": [
                         "FortiWebImageType",
-						"FortiWebFortiFlex",
+						"FortiWebFortiFlex1",
+						"FortiWebFortiFlex2",
                         "FortiWebImageVersion",
                         "FortiWebInstanceType",
                         "FortiWebInstancesCount",
@@ -936,7 +946,10 @@
                 "FortiWebImageType": {
                     "default": "FortiWeb Image Type"
                 },
-				"FortiWebFortiFlex": {
+				"FortiWebFortiFlex1": {
+					"default": "FortiFlex license file token"
+				},
+				"FortiWebFortiFlex2": {
 					"default": "FortiFlex license file token"
 				},
                 "FortiWebImageVersion": {
