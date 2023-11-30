@@ -61,17 +61,11 @@
                 "OnDemand"
             ]
         },
-		"FortiWebFortiFlex1" : {
+		"FortiWebFortiFlex" : {
 			"Type": "String",
-            "AllowedPattern": "[A-Za-z0-9]+",
-            "ConstraintDescription": "must only contain uppercase and lowercase letters and numbers.",
-			"Description": "FortiFlex license file token (BYOL only)."
-		},
-		"FortiWebFortiFlex2" : {
-			"Type": "String",
-            "AllowedPattern": "[A-Za-z0-9]+",
-            "ConstraintDescription": "must only contain uppercase and lowercase letters and numbers.",
-			"Description": "FortiFlex license file token (BYOL only)."
+            "AllowedPattern": "[A-Za-z0-9 ]+",
+            "ConstraintDescription": "must only contain uppercase and lowercase letters numbers and space.",
+			"Description": "FortiFlex license file token, separate by space(BYOL ONLY)."
 		},
         "FortiWebInstanceType": {
             "Type": "String",
@@ -419,11 +413,8 @@
                     "FortiWebInstanceType": {
                         "Ref": "FortiWebInstanceType"
                     },
-					"FortiWebFortiFlex1": {
-						"Ref": "FortiWebFortiFlex1"
-					},
-					"FortiWebFortiFlex2": {
-						"Ref": "FortiWebFortiFlex2"
+					"FortiWebFortiFlex": {
+						"Ref": "FortiWebFortiFlex"
 					},
                     "FortiWebLatestAmiId":{
                         "Fn::If":[
@@ -807,8 +798,7 @@
                     },
                     "Parameters": [
                         "FortiWebImageType",
-						"FortiWebFortiFlex1",
-						"FortiWebFortiFlex2",
+						"FortiWebFortiFlex",
                         "FortiWebImageVersion",
                         "FortiWebInstanceType",
                         "FortiWebInstancesCount",
@@ -857,10 +847,7 @@
                 "FortiWebImageType": {
                     "default": "FortiWeb Image Type"
                 },
-				"FortiWebFortiFlex1" : {
-					"default": "FortiFlex license file token"
-				},
-				"FortiWebFortiFlex2" : {
+				"FortiWebFortiFlex" : {
 					"default": "FortiFlex license file token"
 				},
                 "FortiWebImageVersion": {

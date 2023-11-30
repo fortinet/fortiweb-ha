@@ -13,10 +13,7 @@
         "FortiWebImageType":{
             "Type": "String"
         },
-		"FortiWebFortiFlex1": {
-			"Type": "String"
-		},
-		"FortiWebFortiFlex2": {
+		"FortiWebFortiFlex": {
 			"Type": "String"
 		},
         "FortiWebInstancesCount":{
@@ -89,11 +86,8 @@
                 "FortiWebImageType":{
                     "Ref":"FortiWebImageType"
                 },
-				"FortiWebFortiFlex1": {
-					"Ref":"FortiWebFortiFlex1"
-				},
-				"FortiWebFortiFlex2": {
-					"Ref":"FortiWebFortiFlex2"
+				"FortiWebFortiFlex": {
+					"Ref":"FortiWebFortiFlex"
 				},
                 "InstanceType": {
                     "Ref": "FortiWebInstanceType"
