@@ -46,7 +46,7 @@ def GetLicenseFileName(bucket_name, lic_prefix):
     return licenses
 
 
-def InitInsParam(event, count, lic_files):
+def InitInsParam(event, count, lic_files, Tokens):
     Resource = event['ResourceProperties']
     InsParm = InstanceParam(int(Resource['FortiWebInstancesCount']),
                             Resource['ImageId'],
@@ -85,12 +85,12 @@ def InitInsParam(event, count, lic_files):
     UserData += '\n\"HaGroupName\":\"' +Resource['FortiWebHAGroupName'] + '\",'
     UserData += '\n\"HaGroupId\":\"' + Resource['FortiWebHAGroupID']+'\",'
     UserData += '\n\"HaOverride\":\"' +Resource['FortiWebHAOverride'] +'\",'
-#if len(Resource['FortiWebFortiFlex'] < ins_count)
-#	error handle
-    UserData += '\n\"flex_token\":\"' +Resource['FortiWebFortiFlex'][count] +'\",'
     if Resource['FortiWebImageType'].find('BYOL') != -1:
-        UserData += '\n\"HaBucket\":\"' +Resource['HAS3BucketName'] +'\",'
-        UserData += '\n\"HaLicense\":\"' + lic_files[count] +'\",'
+        if len(Resource['FortiWebFortiFlex']) == 0:
+            UserData += '\n\"HaBucket\":\"' +Resource['HAS3BucketName'] +'\",'
+            UserData += '\n\"HaLicense\":\"' + lic_files[count] +'\",'
+        else:
+            UserData += '\n\"flex_token\":\"' +Tokens[count] +'\",'
 
     if Resource['FortiWebHAMode'].find('active-passive') != -1:
         UserData += '\n\"HaEipIP\":\"' +Resource['FwbEIPIP'] +'\",'
@@ -112,21 +112,28 @@ def InitInsParam(event, count, lic_files):
 def create_ec2_instance(event):
     licenses = []
     instances = []
+    tokens = []
     ec2_client = boto3.client('ec2')
 
     ins_count = int(event['ResourceProperties']['FortiWebInstancesCount'])
 
-    if event['ResourceProperties']['FortiWebImageType'].find('BYOL') != -1:
+    if event['ResourceProperties']['FortiWebImageType'].find('BYOL') != -1 and len(event['ResourceProperties']['FortiWebFortiFlex']) == 0:
         licenses = GetLicenseFileName(event['ResourceProperties']['HAS3BucketName'],
                                       event['ResourceProperties']['HAS3KeyPrefix'])
         if (len(licenses) < ins_count):
             print("Please upload enough license files into the %slicense directory" % (event['ResourceProperties']['HAS3KeyPrefix']))
             raise Exception('There is not engouh license files!')
 
+    if len(event['ResourceProperties']['FortiWebFortiFlex']) != 0:
+        tokens = event['ResourceProperties']['FortiWebFortiFlex'].split()
+        if (len(tokens) < ins_count):
+            print("Please input enough license file tokens")
+            raise Exception('There is not engouh license file tokens!')
+
     try:
         count = 0
         while count < ins_count:
-            InsParm = InitInsParam(event, count, licenses)
+            InsParm = InitInsParam(event, count, licenses, tokens)
             response = ec2_client.run_instances(ImageId =  InsParm.ImageId,
                                                 InstanceType = InsParm.InsType,
                                                 MaxCount=1,

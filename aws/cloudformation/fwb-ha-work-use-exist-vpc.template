@@ -63,7 +63,7 @@
         },
 		"FortiWebFortiFlex" : {
 			"Type": "String",
-            "AllowedPattern": "[A-Za-z0-9 ]+",
+            "AllowedPattern": "^[0-9a-zA-Z ]*$",
             "ConstraintDescription": "must only contain uppercase and lowercase letters numbers and space.",
 			"Description": "FortiFlex license file token, separate by space(BYOL ONLY)."
 		},
@@ -413,9 +413,6 @@
                     "FortiWebInstanceType": {
                         "Ref": "FortiWebInstanceType"
                     },
-					"FortiWebFortiFlex": {
-						"Ref": "FortiWebFortiFlex"
-					},
                     "FortiWebLatestAmiId":{
                         "Fn::If":[
                             "IfImageTypeIsBYOL",
@@ -436,6 +433,9 @@
                     "FortiWebImageType" : {
                         "Ref":"FortiWebImageType"
                     },
+					"FortiWebFortiFlex" : {
+						"Ref": "FortiWebFortiFlex"
+					},
                     "FortiWebInstancesCount":{
                         "Ref": "FortiWebInstancesCount"
                     },
@@ -847,7 +847,7 @@
                 "FortiWebImageType": {
                     "default": "FortiWeb Image Type"
                 },
-				"FortiWebFortiFlex" : {
+				"FortiWebFortiFlex": {
 					"default": "FortiFlex license file token"
 				},
                 "FortiWebImageVersion": {

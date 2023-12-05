@@ -69,7 +69,7 @@
         },
 		"FortiWebFortiFlex" : {
 			"Type": "String",
-            "AllowedPattern": "[A-Za-z0-9 ]+",
+            "AllowedPattern": "^[0-9a-zA-Z ]*$",
             "ConstraintDescription": "must only contain uppercase and lowercase letters numbers and space.",
 			"Description": "FortiFlex license file token, separate by space(BYOL ONLY)."
 		},
