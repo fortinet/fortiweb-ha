@@ -122,7 +122,7 @@
             "MinValue": 1,
             "MaxValue": 8,
             "ConstraintDescription": "must be a valid number between 1 and 8.",
-            "Description": The number of FortiWeb instances the HA cluster should have at any time. Minimum is 1. Maximum is 8."
+            "Description": "The number of FortiWeb instances the HA cluster should have at any time. Minimum is 1. Maximum is 8."
         },
         "FortiWebHAGroupID": {
             "Type": "Number",
