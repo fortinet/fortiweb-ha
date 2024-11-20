@@ -227,6 +227,7 @@ resource "google_compute_instance" "default" {
 
 # Create FWBVM compute active2 instance
 resource "google_compute_instance" "default2" {
+  depends_on = [google_compute_instance.default]
   name           = "fwb-2-${random_string.random_name_post.result}"
   machine_type   = var.machine
   zone           = var.zone_active2
