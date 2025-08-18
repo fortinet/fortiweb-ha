@@ -97,7 +97,7 @@
                         "Arn"
                     ]
                 },
-                "Runtime": "python3.9",
+                "Runtime": "python3.13",
                 "Timeout": 240,
                 "Code": {
                     "S3Bucket": {
